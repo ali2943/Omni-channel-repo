@@ -7,22 +7,13 @@ POST /simulate/email
 """
 
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.connection import get_db
+from schemas.email import IncomingEmailPayload
 from services.email_service import simulate_incoming_email
 
 router = APIRouter(prefix="/simulate", tags=["Email Simulation"])
-
-
-class IncomingEmailPayload(BaseModel):
-    """Payload mimicking a raw inbound email."""
-
-    customer_name: str
-    customer_email: EmailStr
-    subject: str
-    body: str
 
 
 @router.post("/email", status_code=status.HTTP_201_CREATED)

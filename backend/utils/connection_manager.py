@@ -5,9 +5,29 @@ Manages active WebSocket connections.
 Supports broadcasting messages to all clients watching a specific ticket.
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from fastapi import WebSocket
+
+if TYPE_CHECKING:
+    from models.message import Message
+
+
+def format_message_event(message: "Message") -> dict:
+    """Serialise a Message ORM object into a WebSocket broadcast payload."""
+    return {
+        "event": "new_message",
+        "message": {
+            "id": message.id,
+            "ticket_id": message.ticket_id,
+            "sender_type": message.sender_type.value,
+            "content": message.content,
+            "timestamp": message.timestamp.isoformat(),
+        },
+    }
 
 
 class ConnectionManager:

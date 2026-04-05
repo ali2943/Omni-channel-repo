@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.connection import get_db
 from schemas.message import MessageCreate, MessageOut
 from services import message_service, ticket_service
-from utils.connection_manager import manager
+from utils.connection_manager import format_message_event, manager
 
 router = APIRouter(prefix="/tickets", tags=["Messages"])
 
@@ -47,19 +47,7 @@ async def send_message(
     message = await message_service.send_message(db, ticket_id, payload)
 
     # Broadcast the new message to all WebSocket subscribers of this ticket
-    await manager.broadcast_to_ticket(
-        ticket_id,
-        {
-            "event": "new_message",
-            "message": {
-                "id": message.id,
-                "ticket_id": message.ticket_id,
-                "sender_type": message.sender_type.value,
-                "content": message.content,
-                "timestamp": message.timestamp.isoformat(),
-            },
-        },
-    )
+    await manager.broadcast_to_ticket(ticket_id, format_message_event(message))
 
     return message
 

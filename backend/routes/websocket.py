@@ -10,14 +10,13 @@ client is persisted to the database and then broadcast to all other subscribers
 of that ticket.
 """
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from database.connection import AsyncSessionLocal
+from database.connection import get_db_context
 from models.message import SenderType
 from schemas.message import MessageCreate
 from services import message_service
-from utils.connection_manager import manager
+from utils.connection_manager import format_message_event, manager
 
 router = APIRouter(tags=["WebSocket"])
 
@@ -57,7 +56,7 @@ async def websocket_endpoint(websocket: WebSocket, ticket_id: int) -> None:
                 continue
 
             # Persist the message using a fresh DB session
-            async with AsyncSessionLocal() as db:
+            async with get_db_context() as db:
                 try:
                     message = await message_service.send_message(
                         db,
@@ -67,26 +66,12 @@ async def websocket_endpoint(websocket: WebSocket, ticket_id: int) -> None:
                             content=content,
                         ),
                     )
-                    await db.commit()
                 except Exception as exc:
-                    await db.rollback()
                     await websocket.send_json({"error": str(exc)})
                     continue
 
             # Broadcast to all subscribers of this ticket
-            await manager.broadcast_to_ticket(
-                ticket_id,
-                {
-                    "event": "new_message",
-                    "message": {
-                        "id": message.id,
-                        "ticket_id": message.ticket_id,
-                        "sender_type": message.sender_type.value,
-                        "content": message.content,
-                        "timestamp": message.timestamp.isoformat(),
-                    },
-                },
-            )
+            await manager.broadcast_to_ticket(ticket_id, format_message_event(message))
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, ticket_id)

@@ -55,3 +55,35 @@ async def get_db() -> AsyncSession:
         except Exception:
             await session.rollback()
             raise
+
+
+def get_db_context() -> "_DbContextManager":
+    """
+    Return an async context manager that yields a committed DB session.
+    Use this in non-Depends contexts such as WebSocket handlers where
+    FastAPI's dependency injection is not available.
+
+    Usage::
+
+        async with get_db_context() as db:
+            await some_service_call(db, ...)
+    """
+    return _DbContextManager()
+
+
+class _DbContextManager:
+    """Async context manager wrapping a single DB session with commit/rollback."""
+
+    async def __aenter__(self) -> AsyncSession:
+        self._session = AsyncSessionLocal()
+        await self._session.__aenter__()
+        return self._session
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        try:
+            if exc_type is None:
+                await self._session.commit()
+            else:
+                await self._session.rollback()
+        finally:
+            await self._session.__aexit__(exc_type, exc_val, exc_tb)
