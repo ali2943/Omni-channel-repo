@@ -12,8 +12,8 @@ PUT  /agents/{id}/availability       – update agent availability
 """
 from __future__ import annotations
 
-from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.connection import get_db
