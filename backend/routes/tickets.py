@@ -8,12 +8,16 @@ GET    /tickets/                       – list all tickets
 GET    /tickets/{id}                   – get ticket with messages
 PUT    /tickets/{id}/assign            – assign ticket to agent
 PUT    /tickets/{id}/status            – update ticket status
+POST   /tickets/{id}/tags              – add tag to ticket
+DELETE /tickets/{id}/tags/{tag_id}     – remove tag from ticket
 """
+from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.connection import get_db
+from schemas.tag import TagCreate
 from schemas.ticket import (
     TicketAssign,
     TicketCreate,
@@ -22,6 +26,7 @@ from schemas.ticket import (
     TicketStatusUpdate,
 )
 from services import ticket_service
+from services import tag_service
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
@@ -81,6 +86,38 @@ async def update_ticket_status(
 ) -> TicketOut:
     """Update the lifecycle status of a ticket."""
     ticket = await ticket_service.update_ticket_status(db, ticket_id, payload)
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found.",
+        )
+    return ticket
+
+
+@router.post("/{ticket_id}/tags", response_model=TicketOut)
+async def add_tag(
+    ticket_id: int,
+    payload: TagCreate,
+    db: AsyncSession = Depends(get_db),
+) -> TicketOut:
+    """Add a tag to a ticket by name (creates the tag if it doesn't exist)."""
+    ticket = await tag_service.add_tag_to_ticket(db, ticket_id, payload.name)
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ticket not found.",
+        )
+    return ticket
+
+
+@router.delete("/{ticket_id}/tags/{tag_id}", response_model=TicketOut)
+async def remove_tag(
+    ticket_id: int,
+    tag_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> TicketOut:
+    """Remove a tag from a ticket."""
+    ticket = await tag_service.remove_tag_from_ticket(db, ticket_id, tag_id)
     if not ticket:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

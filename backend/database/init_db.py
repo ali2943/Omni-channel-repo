@@ -12,6 +12,7 @@ import models.user        # noqa: F401
 import models.customer    # noqa: F401
 import models.ticket      # noqa: F401
 import models.message     # noqa: F401
+import models.tag         # noqa: F401
 
 
 async def init_models() -> None:
