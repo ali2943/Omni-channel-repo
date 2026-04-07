@@ -25,6 +25,12 @@ from __future__ import annotations
 import os
 from typing import AsyncGenerator
 
+from dotenv import load_dotenv
+
+# Load variables from a .env file in the backend directory (if present).
+# This must happen before any os.getenv() call reads DATABASE_URL etc.
+load_dotenv()
+
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
