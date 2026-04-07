@@ -133,7 +133,7 @@ export const addTag = async (id: string, tag: string): Promise<Ticket> => {
 };
 
 export const removeTag = async (id: string, tag: string): Promise<Ticket> => {
-  const { data } = await client.delete(`/tickets/${id}/tags/${tag}`);
+  const { data } = await client.delete(`/tickets/${id}/tags/${encodeURIComponent(tag)}`);
   return data;
 };
 
