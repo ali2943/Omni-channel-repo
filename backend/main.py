@@ -13,12 +13,18 @@ The app:
   - Exposes interactive API docs at /docs
 """
 
+import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from database.connection import DATABASE_URL
 from database.init_db import init_models
 from routes import agents, customers, email_simulation, messages, tickets, websocket
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -27,7 +33,20 @@ from routes import agents, customers, email_simulation, messages, tickets, webso
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Create database tables before the first request is served."""
-    await init_models()
+    try:
+        await init_models()
+    except Exception as exc:
+        logger.error(
+            "\n\n"
+            "  ❌  Could not connect to the database on startup.\n"
+            "      Error   : %s\n"
+            "      URL     : %s\n\n"
+            "  Make sure PostgreSQL is running and that DATABASE_URL is correct.\n"
+            "  You can set it in backend/.env  (see .env.example).\n",
+            exc,
+            DATABASE_URL,
+        )
+        raise
     yield
 
 
@@ -43,6 +62,23 @@ app = FastAPI(
     ),
     version="1.0.0",
     lifespan=lifespan,
+)
+
+
+# ---------------------------------------------------------------------------
+# CORS – allow all origins in development; tighten in production by setting
+# the CORS_ORIGINS environment variable to a comma-separated list of URLs.
+# ---------------------------------------------------------------------------
+_raw_origins = os.getenv("CORS_ORIGINS", "*")
+_allow_all = _raw_origins.strip() == "*"
+_origins = ["*"] if _allow_all else [o.strip() for o in _raw_origins.split(",")]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_credentials=not _allow_all,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

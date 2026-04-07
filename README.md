@@ -98,14 +98,13 @@ Omni-channel-repo/
 | `DB_POOL_SIZE` | No | `5` | Persistent connections kept in the pool |
 | `DB_MAX_OVERFLOW` | No | `10` | Extra connections allowed above pool size |
 | `DB_ECHO` | No | `false` | Set to `true` to log every SQL statement (dev only) |
+| `CORS_ORIGINS` | No | `*` | Allowed CORS origins. Use `*` for development or a comma-separated list of URLs for production |
 
-Create a `.env` file in the `backend/` directory (or export variables in your shell):
+Copy the provided template and fill in your values:
 
-```dotenv
-DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/omnichannel
-DB_POOL_SIZE=5
-DB_MAX_OVERFLOW=10
-DB_ECHO=false
+```bash
+cp backend/.env.example backend/.env
+# then edit backend/.env
 ```
 
 ---
@@ -124,7 +123,11 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Create the PostgreSQL database
+# 4. Copy and configure the environment file
+cp .env.example .env
+# Edit .env with your PostgreSQL credentials
+
+# 5. Create the PostgreSQL database
 psql -U postgres -c "CREATE DATABASE omnichannel;"
 ```
 
@@ -139,6 +142,17 @@ uvicorn main:app --reload
 
 The server starts at **http://127.0.0.1:8000**.  
 Database tables are created automatically on first startup.
+
+---
+
+## Common Errors
+
+| Error | Cause | Fix |
+|---|---|---|
+| `❌ Could not connect to the database` / `Connection refused` | PostgreSQL is not running or `DATABASE_URL` is wrong | Start PostgreSQL and verify `DATABASE_URL` in `backend/.env` |
+| `ModuleNotFoundError` on startup | Dependencies not installed | Run `pip install -r requirements.txt` inside the virtual environment |
+| `CORS` errors in browser | Frontend origin not allowed | Set `CORS_ORIGINS=http://localhost:3000` (or your frontend URL) in `backend/.env` |
+| `422 Unprocessable Entity` from the API | Request body does not match the expected schema | Check the `/docs` page for the correct payload shape |
 
 ---
 
