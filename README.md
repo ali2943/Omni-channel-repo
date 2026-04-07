@@ -20,6 +20,11 @@ A scalable **Omni-Channel Contact Center** backend that enables seamless custome
   - [Tickets](#tickets)
   - [Messages](#messages)
   - [Email Simulation](#email-simulation)
+  - [Channel Simulations](#channel-simulations)
+  - [Routing](#routing)
+  - [AI Engine](#ai-engine)
+  - [Analytics](#analytics)
+  - [Tags](#tags)
   - [WebSocket](#websocket)
 - [Database](#database)
 - [Interactive API Docs](#interactive-api-docs)
@@ -30,9 +35,12 @@ A scalable **Omni-Channel Contact Center** backend that enables seamless custome
 
 The backend powers a multi-channel customer support platform where:
 
-- **Customers** can contact support via email or web chat.
+- **Customers** can contact support via email, web chat, WhatsApp, voice, social media (Facebook, Instagram, TikTok, LinkedIn), or Shopify.
 - **Agents** manage and reply to support tickets in real time.
-- **Tickets** track the full conversation history and lifecycle (`open` → `in_progress` → `closed`).
+- **Tickets** track the full conversation history and lifecycle (`open` → `in_progress` → `closed`), with priority levels, SLA deadlines, tags, and categories.
+- **Routing** assigns tickets to the best available agent using skill-based matching and workload balancing.
+- **AI Engine** (keyword-based) suggests reply templates, classifies ticket categories, and recommends priority levels.
+- **Analytics** endpoints provide KPI dashboards, SLA compliance reports, and volume breakdowns.
 - **WebSocket** channels deliver instant message broadcasts to all connected clients watching a ticket.
 - An **email simulation endpoint** lets you test the inbound email flow end-to-end without an external mail server.
 
@@ -63,19 +71,30 @@ Omni-channel-repo/
     │   ├── connection.py        # Engine, session factory, Base, get_db
     │   └── init_db.py           # Table creation on startup
     ├── models/
-    │   ├── user.py              # Agent (User) model
+    │   ├── user.py              # Agent (User) model (skills, availability, department)
     │   ├── customer.py          # Customer model
-    │   ├── ticket.py            # Ticket model + TicketStatus enum
-    │   └── message.py           # Message model + SenderType enum
+    │   ├── ticket.py            # Ticket model + TicketStatus/ChannelType/TicketPriority enums
+    │   ├── message.py           # Message model + SenderType enum
+    │   └── tag.py               # Tag model + ticket_tags association table
     ├── schemas/                 # Pydantic request/response schemas
+    │   ├── user.py, customer.py, ticket.py, message.py, tag.py, email.py
     ├── routes/
-    │   ├── agents.py            # POST /agents, POST /agents/login, GET /agents/{id}
+    │   ├── agents.py            # Agent CRUD, login, skills, availability
     │   ├── customers.py         # Customer endpoints
-    │   ├── tickets.py           # Ticket CRUD & status/assign endpoints
+    │   ├── tickets.py           # Ticket CRUD, status, assign, tags
     │   ├── messages.py          # Message send & history endpoints
+    │   ├── channels.py          # Channel simulation (WhatsApp, Social, Voice, Shopify, WebChat)
+    │   ├── routing.py           # Queue view & skill-based auto-assignment
+    │   ├── ai.py                # Suggest replies, classify, prioritize
+    │   ├── analytics.py         # KPIs, SLA report, volume report
+    │   ├── tags.py              # Tag list
     │   ├── email_simulation.py  # POST /simulate/email
     │   └── websocket.py         # WS /ws/tickets/{ticket_id}
     ├── services/                # Business logic layer
+    │   ├── customer_service.py, ticket_service.py, user_service.py
+    │   ├── message_service.py, email_service.py
+    │   ├── tag_service.py, routing_service.py
+    │   ├── ai_service.py, analytics_service.py
     └── utils/
         └── connection_manager.py  # WebSocket connection manager
 ```
@@ -172,7 +191,10 @@ Database tables are created automatically on first startup.
 |---|---|---|
 | `POST` | `/agents/` | Register a new support agent |
 | `POST` | `/agents/login` | Email-based login; returns agent details |
+| `GET` | `/agents/` | List all agents |
 | `GET` | `/agents/{agent_id}` | Retrieve a single agent by ID |
+| `PUT` | `/agents/{agent_id}/skills` | Update agent skill tags |
+| `PUT` | `/agents/{agent_id}/availability` | Set agent availability (`true`/`false`) |
 
 ---
 
@@ -194,6 +216,22 @@ Database tables are created automatically on first startup.
 | `GET` | `/tickets/{ticket_id}` | Get ticket details with full message history |
 | `PUT` | `/tickets/{ticket_id}/assign` | Assign ticket to an agent |
 | `PUT` | `/tickets/{ticket_id}/status` | Update ticket status (`open` / `in_progress` / `closed`) |
+| `POST` | `/tickets/{ticket_id}/tags` | Add a tag to a ticket (creates tag if needed) |
+| `DELETE` | `/tickets/{ticket_id}/tags/{tag_id}` | Remove a tag from a ticket |
+
+**Create ticket body:**
+
+```json
+{
+  "customer_id": 1,
+  "channel": "email",
+  "subject": "Billing question",
+  "priority": "high"
+}
+```
+
+`channel`: `voice`, `whatsapp`, `facebook`, `instagram`, `tiktok`, `linkedin`, `shopify`, `webchat`, `email`  
+`priority`: `low`, `medium`, `high`, `urgent`
 
 ---
 
@@ -222,6 +260,100 @@ Database tables are created automatically on first startup.
   "body": "Hi, I have a problem with my order #1234."
 }
 ```
+
+---
+
+### Channel Simulations
+
+Simulate inbound messages from different communication platforms. Each endpoint creates the customer (if new), opens a ticket, and stores the first message.
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/simulate/email` | Inbound customer email |
+| `POST` | `/simulate/whatsapp` | Inbound WhatsApp message |
+| `POST` | `/simulate/social` | Inbound social media message (Facebook/Instagram/TikTok/LinkedIn) |
+| `POST` | `/simulate/voice` | Inbound voice call |
+| `POST` | `/simulate/shopify` | Inbound Shopify order inquiry |
+| `POST` | `/simulate/webchat` | Inbound web chat message |
+
+**WhatsApp body:**
+```json
+{ "customer_name": "Ali", "customer_phone": "+1234567890", "message": "Hello, need help!" }
+```
+
+**Social body:**
+```json
+{ "platform": "facebook", "customer_handle": "ali.support", "message": "My order is late" }
+```
+
+**Voice body:**
+```json
+{ "customer_name": "Sara", "customer_phone": "+9876543210", "notes": "Customer called about a billing issue" }
+```
+
+**Shopify body:**
+```json
+{ "customer_name": "John", "customer_email": "john@store.com", "order_id": "ORD-999", "issue": "Item not delivered" }
+```
+
+**WebChat body:**
+```json
+{ "customer_name": "Nina", "customer_email": "nina@web.com", "message": "I need urgent help" }
+```
+
+---
+
+### Routing
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/routing/queue` | List open, unassigned tickets ordered by priority then age |
+| `POST` | `/routing/auto-assign/{ticket_id}` | Auto-assign ticket to best available agent (skill-based) |
+
+The auto-assign algorithm:
+1. Finds all available agents (`is_available=true`).
+2. Filters by agents whose `skills` include the ticket's channel or category.
+3. Falls back to all available agents if none match.
+4. Picks the agent with the fewest open/in-progress tickets.
+
+---
+
+### AI Engine
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/ai/suggest-reply/{ticket_id}` | Return 3 canned reply suggestions based on ticket content |
+| `POST` | `/ai/classify/{ticket_id}` | Classify priority & category from content, update ticket |
+| `POST` | `/ai/prioritize/{ticket_id}` | Update only the priority based on content analysis |
+
+**Suggest-reply response:**
+```json
+{
+  "suggestions": [
+    "Thank you for reaching out to our support team. We'll assist you shortly.",
+    "Let me investigate this technical issue and provide you with a resolution.",
+    "Is there any additional information you can provide to help us resolve this faster?"
+  ]
+}
+```
+
+---
+
+### Analytics
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/analytics/kpis` | KPI dashboard (totals, SLA rate, avg handle time, volume by channel/status) |
+| `GET` | `/analytics/sla` | Per-ticket SLA compliance report |
+| `GET` | `/analytics/volume` | Ticket volume by channel and by creation date |
+
+---
+
+### Tags
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/tags/` | List all tags (alphabetical) |
 
 ---
 

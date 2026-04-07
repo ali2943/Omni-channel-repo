@@ -10,6 +10,7 @@ Simulates an incoming customer email:
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.message import SenderType
+from models.ticket import ChannelType
 from schemas.message import MessageCreate
 from schemas.ticket import TicketCreate
 from services.customer_service import get_or_create_customer
@@ -29,20 +30,24 @@ async def simulate_incoming_email(
 
     Steps:
         1. Get or create the customer record.
-        2. Create a new ticket linked to that customer.
+        2. Create a new ticket linked to that customer with channel=email.
         3. Store the email body as the opening customer message.
 
     Returns a dict summarising the created resources.
     """
-    # Step 1 – resolve customer
     customer, was_created = await get_or_create_customer(
         db, name=customer_name, email=customer_email
     )
 
-    # Step 2 – open a ticket
-    ticket = await create_ticket(db, TicketCreate(customer_id=customer.id))
+    ticket = await create_ticket(
+        db,
+        TicketCreate(
+            customer_id=customer.id,
+            channel=ChannelType.email,
+            subject=subject,
+        ),
+    )
 
-    # Step 3 – store the email body as the first message
     message_content = f"[Subject: {subject}]\n\n{body}"
     message = await send_message(
         db,
