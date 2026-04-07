@@ -40,7 +40,7 @@ async def auto_assign_ticket(
         return None
 
     # Gather all available agents
-    result = await db.execute(select(User).where(User.is_available == True))  # noqa: E712
+    result = await db.execute(select(User).where(User.is_available.is_(True)))
     available_agents = list(result.scalars().all())
     if not available_agents:
         return None
