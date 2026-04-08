@@ -1,6 +1,6 @@
 # Omni-Channel Contact Center
 
-A scalable **Omni-Channel Contact Center** backend that enables seamless customer engagement via Email and Web Chat, with integrated Ticket Management, real-time messaging over WebSocket, and AI-readiness.
+A full-stack **Omni-Channel Contact Center** platform that enables seamless customer engagement via Email, Web Chat, WhatsApp, Voice, and Social Media. The project includes a scalable FastAPI backend with real-time WebSocket support, AI-readiness, and a React + TypeScript frontend dashboard for agents.
 
 ---
 
@@ -8,11 +8,16 @@ A scalable **Omni-Channel Contact Center** backend that enables seamless custome
 
 - [Overview](#overview)
 - [Tech Stack](#tech-stack)
+  - [Backend](#backend-tech-stack)
+  - [Frontend](#frontend-tech-stack)
 - [Project Structure](#project-structure)
 - [Prerequisites](#prerequisites)
 - [Environment Variables](#environment-variables)
 - [Local Setup](#local-setup)
-- [Running the Server](#running-the-server)
+  - [Backend Setup](#backend-setup)
+  - [Frontend Setup](#frontend-setup)
+- [Running the Application](#running-the-application)
+- [Frontend Pages](#frontend-pages)
 - [API Reference](#api-reference)
   - [Health Check](#health-check)
   - [Agents](#agents)
@@ -33,20 +38,27 @@ A scalable **Omni-Channel Contact Center** backend that enables seamless custome
 
 ## Overview
 
-The backend powers a multi-channel customer support platform where:
+This platform provides a complete multi-channel customer support solution consisting of:
+
+- A **FastAPI backend** powering the business logic, REST API, and real-time WebSocket messaging.
+- A **React + TypeScript frontend** agent dashboard with routing, ticket management, simulation tools, and analytics.
+
+Key capabilities:
 
 - **Customers** can contact support via email, web chat, WhatsApp, voice, social media (Facebook, Instagram, TikTok, LinkedIn), or Shopify.
-- **Agents** manage and reply to support tickets in real time.
+- **Agents** manage and reply to support tickets in real time through the dashboard UI or directly via the API.
 - **Tickets** track the full conversation history and lifecycle (`open` → `in_progress` → `closed`), with priority levels, SLA deadlines, tags, and categories.
 - **Routing** assigns tickets to the best available agent using skill-based matching and workload balancing.
 - **AI Engine** (keyword-based) suggests reply templates, classifies ticket categories, and recommends priority levels.
 - **Analytics** endpoints provide KPI dashboards, SLA compliance reports, and volume breakdowns.
 - **WebSocket** channels deliver instant message broadcasts to all connected clients watching a ticket.
-- An **email simulation endpoint** lets you test the inbound email flow end-to-end without an external mail server.
+- **Simulation endpoints** let you test inbound flows (email, WhatsApp, social, voice, Shopify, web chat) end-to-end without external services.
 
 ---
 
 ## Tech Stack
+
+### Backend Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -58,45 +70,80 @@ The backend powers a multi-channel customer support platform where:
 | Validation | [Pydantic](https://docs.pydantic.dev/) ≥ 2.0 |
 | Language | Python 3.11+ |
 
+### Frontend Tech Stack
+
+| Layer | Technology |
+|---|---|
+| UI framework | [React](https://react.dev/) 19 |
+| Language | TypeScript |
+| Build tool | [Vite](https://vitejs.dev/) |
+| Routing | [React Router](https://reactrouter.com/) v7 |
+| HTTP client | [Axios](https://axios-http.com/) |
+| Styling | [Tailwind CSS](https://tailwindcss.com/) v3 |
+
 ---
 
 ## Project Structure
 
 ```
 Omni-channel-repo/
-└── backend/
-    ├── main.py                  # FastAPI app entry point
-    ├── requirements.txt
-    ├── database/
-    │   ├── connection.py        # Engine, session factory, Base, get_db
-    │   └── init_db.py           # Table creation on startup
-    ├── models/
-    │   ├── user.py              # Agent (User) model (skills, availability, department)
-    │   ├── customer.py          # Customer model
-    │   ├── ticket.py            # Ticket model + TicketStatus/ChannelType/TicketPriority enums
-    │   ├── message.py           # Message model + SenderType enum
-    │   └── tag.py               # Tag model + ticket_tags association table
-    ├── schemas/                 # Pydantic request/response schemas
-    │   ├── user.py, customer.py, ticket.py, message.py, tag.py, email.py
-    ├── routes/
-    │   ├── agents.py            # Agent CRUD, login, skills, availability
-    │   ├── customers.py         # Customer endpoints
-    │   ├── tickets.py           # Ticket CRUD, status, assign, tags
-    │   ├── messages.py          # Message send & history endpoints
-    │   ├── channels.py          # Channel simulation (WhatsApp, Social, Voice, Shopify, WebChat)
-    │   ├── routing.py           # Queue view & skill-based auto-assignment
-    │   ├── ai.py                # Suggest replies, classify, prioritize
-    │   ├── analytics.py         # KPIs, SLA report, volume report
-    │   ├── tags.py              # Tag list
-    │   ├── email_simulation.py  # POST /simulate/email
-    │   └── websocket.py         # WS /ws/tickets/{ticket_id}
-    ├── services/                # Business logic layer
-    │   ├── customer_service.py, ticket_service.py, user_service.py
-    │   ├── message_service.py, email_service.py
-    │   ├── tag_service.py, routing_service.py
-    │   ├── ai_service.py, analytics_service.py
-    └── utils/
-        └── connection_manager.py  # WebSocket connection manager
+├── backend/
+│   ├── main.py                  # FastAPI app entry point
+│   ├── requirements.txt
+│   ├── .env.example
+│   ├── database/
+│   │   ├── connection.py        # Engine, session factory, Base, get_db
+│   │   └── init_db.py           # Table creation on startup
+│   ├── models/
+│   │   ├── user.py              # Agent (User) model (skills, availability, department)
+│   │   ├── customer.py          # Customer model
+│   │   ├── ticket.py            # Ticket model + TicketStatus/ChannelType/TicketPriority enums
+│   │   ├── message.py           # Message model + SenderType enum
+│   │   └── tag.py               # Tag model + ticket_tags association table
+│   ├── schemas/                 # Pydantic request/response schemas
+│   │   ├── user.py, customer.py, ticket.py, message.py, tag.py, email.py
+│   ├── routes/
+│   │   ├── agents.py            # Agent CRUD, login, skills, availability
+│   │   ├── customers.py         # Customer endpoints
+│   │   ├── tickets.py           # Ticket CRUD, status, assign, tags
+│   │   ├── messages.py          # Message send & history endpoints
+│   │   ├── channels.py          # Channel simulation (WhatsApp, Social, Voice, Shopify, WebChat)
+│   │   ├── routing.py           # Queue view & skill-based auto-assignment
+│   │   ├── ai.py                # Suggest replies, classify, prioritize
+│   │   ├── analytics.py         # KPIs, SLA report, volume report
+│   │   ├── tags.py              # Tag list
+│   │   ├── email_simulation.py  # POST /simulate/email
+│   │   └── websocket.py         # WS /ws/tickets/{ticket_id}
+│   ├── services/                # Business logic layer
+│   │   ├── customer_service.py, ticket_service.py, user_service.py
+│   │   ├── message_service.py, email_service.py
+│   │   ├── tag_service.py, routing_service.py
+│   │   ├── ai_service.py, analytics_service.py
+│   └── utils/
+│       └── connection_manager.py  # WebSocket connection manager
+└── frontend/
+    ├── index.html
+    ├── package.json
+    ├── vite.config.ts
+    ├── tailwind.config.js
+    ├── tsconfig.json
+    └── src/
+        ├── main.tsx             # React entry point
+        ├── App.tsx              # Router & layout
+        ├── api/                 # Axios API client & typed helpers
+        │   ├── client.ts
+        │   └── index.ts
+        ├── components/          # Shared UI components
+        │   ├── Sidebar.tsx
+        │   ├── StatusBadge.tsx
+        │   └── PriorityBadge.tsx
+        └── pages/               # Route-level page components
+            ├── Dashboard.tsx
+            ├── Tickets.tsx
+            ├── TicketDetail.tsx
+            ├── Agents.tsx
+            ├── RoutingQueue.tsx
+            └── Simulate.tsx
 ```
 
 ---
@@ -104,6 +151,7 @@ Omni-channel-repo/
 ## Prerequisites
 
 - **Python 3.11+**
+- **Node.js 18+** and **npm**
 - **PostgreSQL** (local or remote instance)
 - `pip` (or a virtual-environment tool such as `venv` / `poetry`)
 
@@ -130,6 +178,8 @@ cp backend/.env.example backend/.env
 
 ## Local Setup
 
+### Backend Setup
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/ali2943/Omni-channel-repo.git
@@ -150,17 +200,38 @@ cp .env.example .env
 psql -U postgres -c "CREATE DATABASE omnichannel;"
 ```
 
----
-
-## Running the Server
+### Frontend Setup
 
 ```bash
-# From the backend/ directory
+# From the repository root
+cd frontend
+
+# Install dependencies
+npm install
+```
+
+---
+
+## Running the Application
+
+**Backend** (from the `backend/` directory):
+
+```bash
 uvicorn main:app --reload
 ```
 
-The server starts at **http://127.0.0.1:8000**.  
+The API server starts at **http://127.0.0.1:8000**.  
 Database tables are created automatically on first startup.
+
+**Frontend** (from the `frontend/` directory):
+
+```bash
+npm run dev
+```
+
+The frontend dev server starts at **http://localhost:5173** and proxies API calls to the backend.
+
+> **Tip:** For the frontend to communicate with the backend, ensure the backend is running and that `CORS_ORIGINS` in `backend/.env` includes `http://localhost:5173`.
 
 ---
 
@@ -170,8 +241,21 @@ Database tables are created automatically on first startup.
 |---|---|---|
 | `❌ Could not connect to the database` / `Connection refused` | PostgreSQL is not running or `DATABASE_URL` is wrong | Start PostgreSQL and verify `DATABASE_URL` in `backend/.env` |
 | `ModuleNotFoundError` on startup | Dependencies not installed | Run `pip install -r requirements.txt` inside the virtual environment |
-| `CORS` errors in browser | Frontend origin not allowed | Set `CORS_ORIGINS=http://localhost:3000` (or your frontend URL) in `backend/.env` |
+| `CORS` errors in browser | Frontend origin not allowed | Set `CORS_ORIGINS=http://localhost:5173` (or your frontend URL) in `backend/.env` |
 | `422 Unprocessable Entity` from the API | Request body does not match the expected schema | Check the `/docs` page for the correct payload shape |
+
+---
+
+## Frontend Pages
+
+| Route | Page | Description |
+|---|---|---|
+| `/` | Dashboard | KPI overview: total tickets, open/closed counts, SLA compliance, volume by channel |
+| `/tickets` | Tickets | Browse and filter all tickets with status and priority indicators |
+| `/tickets/:id` | Ticket Detail | View full message history, send replies, update status, manage tags |
+| `/agents` | Agents | List agents, register new agents, update skills and availability |
+| `/routing` | Routing Queue | View unassigned tickets ordered by priority; trigger auto-assignment |
+| `/simulate` | Simulate | Send test inbound messages from any supported channel (email, WhatsApp, etc.) |
 
 ---
 
