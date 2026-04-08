@@ -76,7 +76,7 @@ export default function Tickets() {
                 onClick={() => navigate(`/tickets/${ticket.id}`)}
               >
                 <td className="px-4 py-3 text-gray-400 font-mono text-xs">
-                  {ticket.id.slice(0, 8)}…
+                  #{ticket.id}
                 </td>
                 <td className="px-4 py-3 font-medium text-gray-900">{ticket.subject}</td>
                 <td className="px-4 py-3">
@@ -86,7 +86,7 @@ export default function Tickets() {
                   <PriorityBadge priority={ticket.priority} />
                 </td>
                 <td className="px-4 py-3">
-                  <span className="mr-1">{channelEmoji[ticket.channel] ?? '📌'}</span>
+                  <span className="mr-1">{channelEmoji[ticket.channel ?? ''] ?? '📌'}</span>
                   <span className="capitalize">{ticket.channel}</span>
                 </td>
                 <td className="px-4 py-3 text-gray-500">

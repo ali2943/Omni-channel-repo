@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getQueue, autoAssign } from '../api';
-import type { QueueTicket } from '../api';
+import type { Ticket } from '../api';
 import PriorityBadge from '../components/PriorityBadge';
 
 const channelEmoji: Record<string, string> = {
@@ -13,10 +13,10 @@ const channelEmoji: Record<string, string> = {
 };
 
 export default function RoutingQueue() {
-  const [queue, setQueue] = useState<QueueTicket[]>([]);
+  const [queue, setQueue] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<Record<string, { msg: string; ok: boolean }>>({});
+  const [feedback, setFeedback] = useState<Record<number, { msg: string; ok: boolean }>>({});
 
   const fetchQueue = async () => {
     try {
@@ -33,12 +33,17 @@ export default function RoutingQueue() {
     fetchQueue();
   }, []);
 
-  const handleAutoAssign = async (ticketId: string) => {
+  const handleAutoAssign = async (ticketId: number) => {
     try {
       const result = await autoAssign(ticketId);
       setFeedback((prev) => ({
         ...prev,
-        [ticketId]: { msg: `Assigned to agent ${result.agent_id.slice(0, 8)}…`, ok: true },
+        [ticketId]: {
+          msg: result.assigned_agent_id
+            ? `Assigned to agent #${result.assigned_agent_id}`
+            : 'Assigned successfully.',
+          ok: true,
+        },
       }));
       await fetchQueue();
     } catch {
@@ -96,14 +101,14 @@ export default function RoutingQueue() {
             {queue.map((ticket) => (
               <tr key={ticket.id} className="border-t border-gray-100">
                 <td className="px-4 py-3 text-gray-400 font-mono text-xs">
-                  {ticket.id.slice(0, 8)}…
+                  #{ticket.id}
                 </td>
                 <td className="px-4 py-3 font-medium text-gray-900">{ticket.subject}</td>
                 <td className="px-4 py-3">
                   <PriorityBadge priority={ticket.priority} />
                 </td>
                 <td className="px-4 py-3">
-                  <span className="mr-1">{channelEmoji[ticket.channel] ?? '📌'}</span>
+                  <span className="mr-1">{channelEmoji[ticket.channel ?? ''] ?? '📌'}</span>
                   <span className="capitalize">{ticket.channel}</span>
                 </td>
                 <td className="px-4 py-3 text-gray-500">
