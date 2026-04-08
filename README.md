@@ -131,8 +131,16 @@ Omni-channel-repo/
         ├── main.tsx             # React entry point
         ├── App.tsx              # Router & layout
         ├── api/                 # Axios API client & typed helpers
-        │   ├── client.ts
-        │   └── index.ts
+        │   ├── client.ts        # Axios instance (reads VITE_API_URL, error interceptor)
+        │   ├── types.ts         # Shared TypeScript interfaces (mirror backend schemas)
+        │   ├── tickets.ts       # Ticket & message endpoints
+        │   ├── agents.ts        # Agent endpoints
+        │   ├── customers.ts     # Customer endpoints
+        │   ├── analytics.ts     # Analytics endpoints
+        │   ├── ai.ts            # AI suggestion / classify endpoints
+        │   ├── routing.ts       # Routing queue & auto-assign endpoints
+        │   ├── simulate.ts      # Channel simulation endpoints
+        │   └── index.ts         # Re-exports all types and API functions
         ├── components/          # Shared UI components
         │   ├── Sidebar.tsx
         │   ├── StatusBadge.tsx
@@ -159,6 +167,8 @@ Omni-channel-repo/
 
 ## Environment Variables
 
+### Backend
+
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `DATABASE_URL` | No | `postgresql+asyncpg://postgres:postgres@localhost:5432/omnichannel` | Full async connection URL |
@@ -172,6 +182,24 @@ Copy the provided template and fill in your values:
 ```bash
 cp backend/.env.example backend/.env
 # then edit backend/.env
+```
+
+### Frontend
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `VITE_API_URL` | No | *(empty — uses Vite dev proxy)* | Full backend REST URL for production builds (e.g. `https://api.example.com`) |
+| `VITE_WS_URL` | No | *(empty — uses Vite dev proxy)* | Full backend WebSocket URL for production builds (e.g. `wss://api.example.com`) |
+
+In **development** leave both variables unset. The Vite dev-server proxy forwards:
+- `/api/*` → `http://localhost:8000/*` (REST)
+- `/ws/*` → `ws://localhost:8000/ws/*` (WebSocket)
+
+In **production** set both to point to your deployed backend.
+
+```bash
+cp frontend/.env.example frontend/.env
+# then edit frontend/.env
 ```
 
 ---
@@ -208,6 +236,9 @@ cd frontend
 
 # Install dependencies
 npm install
+
+# (Optional) Copy the environment template – only needed for production deployments
+# cp .env.example .env
 ```
 
 ---

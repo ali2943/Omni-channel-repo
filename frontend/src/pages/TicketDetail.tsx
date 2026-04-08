@@ -12,19 +12,31 @@ import {
   suggestReply,
   classifyTicket,
 } from '../api';
-import type { Ticket, Agent, Message } from '../api';
+import type { Ticket, Agent, Message, Tag } from '../api';
 import StatusBadge from '../components/StatusBadge';
 import PriorityBadge from '../components/PriorityBadge';
 
+/**
+ * Returns the WebSocket base URL.
+ * In development the Vite proxy forwards /ws/* to the backend.
+ * In production set VITE_WS_URL to the backend WebSocket URL (e.g. wss://api.example.com).
+ */
+function getWsBaseUrl(): string {
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}`;
+}
+
 export default function TicketDetail() {
   const { id } = useParams<{ id: string }>();
+  const ticketId = id ? Number(id) : null;
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedAgent, setSelectedAgent] = useState('');
+  const [selectedAgent, setSelectedAgent] = useState<number | ''>('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [newTag, setNewTag] = useState('');
   const [messageInput, setMessageInput] = useState('');
@@ -36,14 +48,14 @@ export default function TicketDetail() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!ticketId) return;
 
     const fetchAll = async () => {
       try {
         const [ticketData, agentList, msgList] = await Promise.all([
-          getTicket(id),
+          getTicket(ticketId),
           listAgents(),
-          getMessages(id),
+          getMessages(ticketId),
         ]);
         setTicket(ticketData);
         setAgents(agentList);
@@ -58,8 +70,8 @@ export default function TicketDetail() {
 
     fetchAll();
 
-    // WebSocket connection
-    const ws = new WebSocket(`ws://localhost:8000/ws/tickets/${id}`);
+    // WebSocket connection — goes through Vite proxy in dev, or uses VITE_WS_URL in prod.
+    const ws = new WebSocket(`${getWsBaseUrl()}/ws/tickets/${ticketId}`);
     wsRef.current = ws;
 
     ws.onmessage = (event) => {
@@ -90,9 +102,9 @@ export default function TicketDetail() {
   };
 
   const handleAssign = async () => {
-    if (!id || !selectedAgent) return;
+    if (!ticketId || selectedAgent === '') return;
     try {
-      const updated = await assignTicket(id, selectedAgent);
+      const updated = await assignTicket(ticketId, selectedAgent);
       setTicket(updated);
       showAction('Agent assigned successfully.');
     } catch {
@@ -101,9 +113,9 @@ export default function TicketDetail() {
   };
 
   const handleStatusUpdate = async () => {
-    if (!id || !selectedStatus) return;
+    if (!ticketId || !selectedStatus) return;
     try {
-      const updated = await updateTicketStatus(id, selectedStatus);
+      const updated = await updateTicketStatus(ticketId, selectedStatus);
       setTicket(updated);
       showAction('Status updated.');
     } catch {
@@ -112,9 +124,9 @@ export default function TicketDetail() {
   };
 
   const handleAddTag = async () => {
-    if (!id || !newTag.trim()) return;
+    if (!ticketId || !newTag.trim()) return;
     try {
-      const updated = await addTag(id, newTag.trim());
+      const updated = await addTag(ticketId, newTag.trim());
       setTicket(updated);
       setNewTag('');
     } catch {
@@ -122,10 +134,10 @@ export default function TicketDetail() {
     }
   };
 
-  const handleRemoveTag = async (tag: string) => {
-    if (!id) return;
+  const handleRemoveTag = async (tag: Tag) => {
+    if (!ticketId) return;
     try {
-      const updated = await removeTag(id, tag);
+      const updated = await removeTag(ticketId, tag.id);
       setTicket(updated);
     } catch {
       showAction('Failed to remove tag.');
@@ -133,9 +145,9 @@ export default function TicketDetail() {
   };
 
   const handleSendMessage = async () => {
-    if (!id || !messageInput.trim()) return;
+    if (!ticketId || !messageInput.trim()) return;
     try {
-      const msg = await sendMessage(id, messageInput.trim(), senderType);
+      const msg = await sendMessage(ticketId, messageInput.trim(), senderType);
       setMessages((prev) => [...prev, msg]);
       setMessageInput('');
     } catch {
@@ -144,9 +156,9 @@ export default function TicketDetail() {
   };
 
   const handleSuggestReply = async () => {
-    if (!id) return;
+    if (!ticketId) return;
     try {
-      const result = await suggestReply(id);
+      const result = await suggestReply(ticketId);
       setSuggestions(result.suggestions);
     } catch {
       showAction('Failed to get AI suggestions.');
@@ -154,11 +166,11 @@ export default function TicketDetail() {
   };
 
   const handleClassify = async () => {
-    if (!id) return;
+    if (!ticketId) return;
     try {
-      const result = await classifyTicket(id);
+      const result = await classifyTicket(ticketId);
       showAction(`Classified: priority=${result.priority}, category=${result.category}`);
-      const updated = await getTicket(id);
+      const updated = await getTicket(ticketId);
       setTicket(updated);
     } catch {
       showAction('Failed to classify ticket.');
@@ -207,10 +219,10 @@ export default function TicketDetail() {
         <div className="mt-4 flex flex-wrap gap-2 items-center">
           {ticket.tags.map((tag) => (
             <span
-              key={tag}
+              key={tag.id}
               className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700"
             >
-              {tag}
+              {tag.name}
               <button
                 onClick={() => handleRemoveTag(tag)}
                 className="hover:text-red-600 font-bold"
@@ -254,7 +266,7 @@ export default function TicketDetail() {
           </label>
           <select
             value={selectedAgent}
-            onChange={(e) => setSelectedAgent(e.target.value)}
+            onChange={(e) => setSelectedAgent(e.target.value === '' ? '' : Number(e.target.value))}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select agent…</option>

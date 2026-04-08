@@ -81,7 +81,7 @@ export default function Simulate() {
     setSubmitting(true);
     setResult(null);
     try {
-      let res: { ticket_id: string };
+      let res: { ticket_id: number };
       if (activeTab === 'email') res = await simulateEmail(emailForm);
       else if (activeTab === 'whatsapp') res = await simulateWhatsApp(whatsappForm);
       else if (activeTab === 'social') res = await simulateSocial(socialForm);
