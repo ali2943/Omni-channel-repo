@@ -8,11 +8,12 @@ Call `init_models()` from main.py during application startup.
 from database.connection import engine, Base
 
 # Import all models so that SQLAlchemy registers them with Base.metadata
-import models.user        # noqa: F401
-import models.customer    # noqa: F401
-import models.ticket      # noqa: F401
-import models.message     # noqa: F401
-import models.tag         # noqa: F401
+import models.user              # noqa: F401
+import models.customer          # noqa: F401
+import models.ticket            # noqa: F401
+import models.message           # noqa: F401
+import models.tag               # noqa: F401
+import models.agent_knowledge   # noqa: F401
 
 
 async def init_models() -> None:

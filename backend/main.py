@@ -24,6 +24,7 @@ from database.connection import DATABASE_URL
 from database.init_db import init_models
 from routes import agents, customers, email_simulation, messages, tickets, websocket
 from routes import channels, routing, ai, analytics, tags as tags_router
+from routes import ai_agents
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,7 @@ app.include_router(routing.router)
 app.include_router(ai.router)
 app.include_router(analytics.router)
 app.include_router(tags_router.router)
+app.include_router(ai_agents.router)
 
 
 # ---------------------------------------------------------------------------

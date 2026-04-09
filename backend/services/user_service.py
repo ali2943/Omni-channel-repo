@@ -26,6 +26,28 @@ async def create_agent(db: AsyncSession, payload: UserCreate) -> User:
     return agent
 
 
+async def create_ai_agent(db: AsyncSession, payload: "CreateAIAgent") -> User:  # noqa: F821
+    """Persist a new AI-powered agent and return it."""
+    from schemas.ai_agents import CreateAIAgent  # local import to avoid circular deps
+
+    agent = User(
+        name=payload.name,
+        email=payload.email,
+        skills=payload.skills,
+        department=payload.department,
+        is_ai_agent=True,
+        ai_model=payload.ai_model,
+        ai_config=payload.ai_config,
+        knowledge_base_enabled=payload.knowledge_base_enabled,
+        auto_respond=payload.auto_respond,
+        confidence_threshold=payload.confidence_threshold,
+    )
+    db.add(agent)
+    await db.flush()
+    await db.refresh(agent)
+    return agent
+
+
 async def get_agent_by_email(db: AsyncSession, email: str) -> User | None:
     """Return the agent matching the given email, or None."""
     result = await db.execute(select(User).where(User.email == email))

@@ -4,6 +4,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', emoji: '📊' },
   { to: '/tickets', label: 'Tickets', emoji: '🎫' },
   { to: '/agents', label: 'Agents', emoji: '👥' },
+  { to: '/ai-agents', label: 'AI Agents', emoji: '🤖' },
   { to: '/routing', label: 'Routing Queue', emoji: '📋' },
   { to: '/simulate', label: 'Simulate', emoji: '🧪' },
 ];
