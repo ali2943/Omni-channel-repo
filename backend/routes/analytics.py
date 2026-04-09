@@ -25,12 +25,12 @@ async def kpis(db: AsyncSession = Depends(get_db)) -> dict:
 
 
 @router.get("/sla")
-async def sla_report(db: AsyncSession = Depends(get_db)) -> list:
-    """Return per-ticket SLA compliance data."""
+async def sla_report(db: AsyncSession = Depends(get_db)) -> dict:
+    """Return aggregate SLA compliance statistics."""
     return await analytics_service.get_sla_report(db)
 
 
 @router.get("/volume")
-async def volume_report(db: AsyncSession = Depends(get_db)) -> dict:
-    """Return ticket volume broken down by channel and creation date."""
+async def volume_report(db: AsyncSession = Depends(get_db)) -> list:
+    """Return ticket volume broken down by channel."""
     return await analytics_service.get_volume_report(db)

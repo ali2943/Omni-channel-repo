@@ -69,8 +69,3 @@ export interface VolumeEntry {
 export interface AISuggestion {
   suggestions: string[];
 }
-
-export interface ClassifyResult {
-  priority: string;
-  category: string;
-}
