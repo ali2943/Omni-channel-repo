@@ -6,7 +6,6 @@ Analytics and reporting queries for the support platform.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,50 +59,46 @@ async def get_kpis(db: AsyncSession) -> dict:
         "open_tickets": open_count,
         "in_progress_tickets": in_progress,
         "closed_tickets": closed_count,
-        "sla_compliance_rate": sla_compliance_rate,
-        "avg_handle_time_minutes": avg_handle_time,
+        "sla_compliance_percentage": round(sla_compliance_rate, 1) if sla_compliance_rate is not None else 0.0,
+        "average_handle_time_minutes": round(avg_handle_time, 1) if avg_handle_time is not None else 0.0,
         "volume_by_channel": dict(volume_by_channel),
         "volume_by_status": dict(volume_by_status),
     }
 
 
-async def get_sla_report(db: AsyncSession) -> list[dict]:
-    """Return per-ticket SLA compliance status."""
+async def get_sla_report(db: AsyncSession) -> dict:
+    """Return aggregate SLA compliance statistics."""
     result = await db.execute(select(Ticket))
     tickets = list(result.scalars().all())
 
-    report = []
+    compliant_count = 0
+    breached_count = 0
     for t in tickets:
-        compliant: bool | None = None
         if t.closed_at is not None and t.sla_due_at is not None:
-            compliant = t.closed_at <= t.sla_due_at
-        report.append(
-            {
-                "ticket_id": t.id,
-                "sla_due_at": t.sla_due_at.isoformat() if t.sla_due_at else None,
-                "closed_at": t.closed_at.isoformat() if t.closed_at else None,
-                "compliant": compliant,
-            }
-        )
-    return report
+            if t.closed_at <= t.sla_due_at:
+                compliant_count += 1
+            else:
+                breached_count += 1
+
+    total_resolved = compliant_count + breached_count
+    compliance_rate = round(compliant_count / total_resolved, 4) if total_resolved > 0 else round(0.0, 4)
+
+    return {
+        "compliant": compliant_count,
+        "breached": breached_count,
+        "compliance_rate": compliance_rate,
+    }
 
 
-async def get_volume_report(db: AsyncSession) -> dict:
-    """Return ticket volume broken down by channel and by creation date."""
+async def get_volume_report(db: AsyncSession) -> list[dict]:
+    """Return ticket volume broken down by channel as a list of {channel, count} entries."""
     result = await db.execute(select(Ticket))
     tickets = list(result.scalars().all())
 
     by_channel: dict[str, int] = defaultdict(int)
-    by_day: dict[str, int] = defaultdict(int)
 
     for t in tickets:
         channel_key = t.channel.value if t.channel else "unknown"
         by_channel[channel_key] += 1
 
-        day_key = t.created_at.astimezone(timezone.utc).strftime("%Y-%m-%d")
-        by_day[day_key] += 1
-
-    return {
-        "volume_by_channel": dict(by_channel),
-        "volume_by_day": dict(by_day),
-    }
+    return [{"channel": channel, "count": count} for channel, count in by_channel.items()]

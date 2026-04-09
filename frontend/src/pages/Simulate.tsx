@@ -89,7 +89,8 @@ export default function Simulate() {
       else if (activeTab === 'shopify') res = await simulateShopify(shopifyForm);
       else res = await simulateWebchat(webchatForm);
       setResult({ ok: true, msg: `✅ Ticket created: ${res.ticket_id}` });
-    } catch {
+    } catch (err) {
+      console.error('Simulation failed:', err);
       setResult({ ok: false, msg: '❌ Simulation failed. Check that the backend is running.' });
     } finally {
       setSubmitting(false);

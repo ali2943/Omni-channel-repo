@@ -25,7 +25,8 @@ export default function Tickets() {
       try {
         const data = await listTickets();
         setTickets(data);
-      } catch {
+      } catch (err) {
+        console.error('Failed to load tickets:', err);
         setError('Failed to load tickets.');
       } finally {
         setLoading(false);

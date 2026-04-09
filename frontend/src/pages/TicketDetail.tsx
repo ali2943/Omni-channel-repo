@@ -20,9 +20,14 @@ import PriorityBadge from '../components/PriorityBadge';
  * Returns the WebSocket base URL.
  * In development the Vite proxy forwards /ws/* to the backend.
  * In production set VITE_WS_URL to the backend WebSocket URL (e.g. wss://api.example.com).
+ * Falls back to deriving from VITE_API_URL when VITE_WS_URL is not set.
  */
 function getWsBaseUrl(): string {
   if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
+  if (import.meta.env.VITE_API_URL) {
+    // Convert http(s):// → ws(s)://
+    return (import.meta.env.VITE_API_URL as string).replace(/^http/, 'ws');
+  }
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${window.location.host}`;
 }
@@ -61,7 +66,8 @@ export default function TicketDetail() {
         setAgents(agentList);
         setMessages(msgList);
         setSelectedStatus(ticketData.status);
-      } catch {
+      } catch (err) {
+        console.error('Failed to load ticket data:', err);
         setError('Failed to load ticket data.');
       } finally {
         setLoading(false);
@@ -107,7 +113,8 @@ export default function TicketDetail() {
       const updated = await assignTicket(ticketId, selectedAgent);
       setTicket(updated);
       showAction('Agent assigned successfully.');
-    } catch {
+    } catch (err) {
+      console.error('Failed to assign agent:', err);
       showAction('Failed to assign agent.');
     }
   };
@@ -118,7 +125,8 @@ export default function TicketDetail() {
       const updated = await updateTicketStatus(ticketId, selectedStatus);
       setTicket(updated);
       showAction('Status updated.');
-    } catch {
+    } catch (err) {
+      console.error('Failed to update status:', err);
       showAction('Failed to update status.');
     }
   };
@@ -129,7 +137,8 @@ export default function TicketDetail() {
       const updated = await addTag(ticketId, newTag.trim());
       setTicket(updated);
       setNewTag('');
-    } catch {
+    } catch (err) {
+      console.error('Failed to add tag:', err);
       showAction('Failed to add tag.');
     }
   };
@@ -139,7 +148,8 @@ export default function TicketDetail() {
     try {
       const updated = await removeTag(ticketId, tag.id);
       setTicket(updated);
-    } catch {
+    } catch (err) {
+      console.error('Failed to remove tag:', err);
       showAction('Failed to remove tag.');
     }
   };
@@ -150,7 +160,8 @@ export default function TicketDetail() {
       const msg = await sendMessage(ticketId, messageInput.trim(), senderType);
       setMessages((prev) => [...prev, msg]);
       setMessageInput('');
-    } catch {
+    } catch (err) {
+      console.error('Failed to send message:', err);
       showAction('Failed to send message.');
     }
   };
@@ -160,7 +171,8 @@ export default function TicketDetail() {
     try {
       const result = await suggestReply(ticketId);
       setSuggestions(result.suggestions);
-    } catch {
+    } catch (err) {
+      console.error('Failed to get AI suggestions:', err);
       showAction('Failed to get AI suggestions.');
     }
   };
@@ -168,11 +180,11 @@ export default function TicketDetail() {
   const handleClassify = async () => {
     if (!ticketId) return;
     try {
-      const result = await classifyTicket(ticketId);
-      showAction(`Classified: priority=${result.priority}, category=${result.category}`);
-      const updated = await getTicket(ticketId);
+      const updated = await classifyTicket(ticketId);
+      showAction(`Classified: priority=${updated.priority}, category=${updated.category}`);
       setTicket(updated);
-    } catch {
+    } catch (err) {
+      console.error('Failed to classify ticket:', err);
       showAction('Failed to classify ticket.');
     }
   };

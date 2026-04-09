@@ -9,7 +9,6 @@ export type {
   SLA,
   VolumeEntry,
   AISuggestion,
-  ClassifyResult,
 } from './types';
 
 // Re-export domain API functions

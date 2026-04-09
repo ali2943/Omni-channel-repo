@@ -33,7 +33,8 @@ export default function Dashboard() {
         const [kpiData, volumeData] = await Promise.all([getKPIs(), getVolume()]);
         setKpis(kpiData);
         setVolume(volumeData);
-      } catch {
+      } catch (err) {
+        console.error('Failed to load analytics data:', err);
         setError('Failed to load analytics data.');
       } finally {
         setLoading(false);

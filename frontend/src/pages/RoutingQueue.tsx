@@ -22,7 +22,8 @@ export default function RoutingQueue() {
     try {
       const data = await getQueue();
       setQueue(data);
-    } catch {
+    } catch (err) {
+      console.error('Failed to load routing queue:', err);
       setError('Failed to load routing queue.');
     } finally {
       setLoading(false);
@@ -46,7 +47,8 @@ export default function RoutingQueue() {
         },
       }));
       await fetchQueue();
-    } catch {
+    } catch (err) {
+      console.error('Auto-assign failed:', err);
       setFeedback((prev) => ({
         ...prev,
         [ticketId]: { msg: 'Auto-assign failed.', ok: false },

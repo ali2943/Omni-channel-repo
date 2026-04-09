@@ -24,7 +24,8 @@ export default function Agents() {
     try {
       const data = await listAgents();
       setAgents(data);
-    } catch {
+    } catch (err) {
+      console.error('Failed to load agents:', err);
       setError('Failed to load agents.');
     } finally {
       setLoading(false);
@@ -39,7 +40,8 @@ export default function Agents() {
     try {
       const updated = await updateAvailability(agent.id, !agent.is_available);
       setAgents((prev) => prev.map((a) => (a.id === agent.id ? updated : a)));
-    } catch {
+    } catch (err) {
+      console.error('Failed to toggle availability:', err);
       // silently fail
     }
   };
@@ -62,7 +64,8 @@ export default function Agents() {
       setShowModal(false);
       setForm(defaultForm);
       await fetchAgents();
-    } catch {
+    } catch (err) {
+      console.error('Failed to create agent:', err);
       setFormError('Failed to create agent.');
     } finally {
       setSubmitting(false);
