@@ -28,6 +28,11 @@ export interface Agent {
   department: string | null;
   skills: string[];
   is_available: boolean;
+  is_ai_agent?: boolean;
+  ai_model?: string | null;
+  knowledge_base_enabled?: boolean;
+  auto_respond?: boolean;
+  confidence_threshold?: number;
 }
 
 export interface Customer {
@@ -69,3 +74,44 @@ export interface VolumeEntry {
 export interface AISuggestion {
   suggestions: string[];
 }
+
+// ---------------------------------------------------------------------------
+// AI Agent types
+// ---------------------------------------------------------------------------
+
+export interface KnowledgeDocument {
+  id: number;
+  agent_id: number;
+  title: string;
+  content: string;
+  category: string | null;
+  embedding_model: string | null;
+  created_at: string;
+}
+
+export interface AISource {
+  id: number;
+  title: string;
+  category: string | null;
+  score: number;
+}
+
+export interface AIAgentResponse {
+  response: string;
+  confidence_score: number;
+  sources: AISource[];
+  requires_human_review: boolean;
+}
+
+export interface AgentAuditRecord {
+  id: number;
+  agent_id: number;
+  ticket_id: number;
+  customer_query: string;
+  ai_response: string;
+  confidence_score: number | null;
+  sources_used: string | null;
+  human_review_status: string;
+  created_at: string;
+}
+

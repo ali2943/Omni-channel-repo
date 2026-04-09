@@ -6,6 +6,7 @@ import TicketDetail from './pages/TicketDetail';
 import Agents from './pages/Agents';
 import RoutingQueue from './pages/RoutingQueue';
 import Simulate from './pages/Simulate';
+import AIAgents from './pages/AIAgents';
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
             <Route path="/tickets" element={<Tickets />} />
             <Route path="/tickets/:id" element={<TicketDetail />} />
             <Route path="/agents" element={<Agents />} />
+            <Route path="/ai-agents" element={<AIAgents />} />
             <Route path="/routing" element={<RoutingQueue />} />
             <Route path="/simulate" element={<Simulate />} />
           </Routes>

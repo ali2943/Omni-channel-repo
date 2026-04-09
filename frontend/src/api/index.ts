@@ -9,6 +9,10 @@ export type {
   SLA,
   VolumeEntry,
   AISuggestion,
+  KnowledgeDocument,
+  AIAgentResponse,
+  AISource,
+  AgentAuditRecord,
 } from './types';
 
 // Re-export domain API functions
@@ -19,3 +23,4 @@ export * from './analytics';
 export * from './ai';
 export * from './routing';
 export * from './simulate';
+export * from './ai_agents';
