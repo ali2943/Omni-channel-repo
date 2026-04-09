@@ -1,6 +1,6 @@
 # Omni-Channel Contact Center
 
-A full-stack **Omni-Channel Contact Center** platform that enables seamless customer engagement via Email, Web Chat, WhatsApp, Voice, and Social Media. The project includes a scalable FastAPI backend with real-time WebSocket support, AI-readiness, and a React + TypeScript frontend dashboard for agents.
+A full-stack **Omni-Channel Contact Center** platform that enables seamless customer engagement via Email, Web Chat, WhatsApp, Voice, and Social Media. The project includes a scalable FastAPI backend with real-time WebSocket support, LLM-powered AI agents (OpenAI / LangChain / LangGraph), and a React + TypeScript frontend dashboard for agents.
 
 ---
 
@@ -28,6 +28,7 @@ A full-stack **Omni-Channel Contact Center** platform that enables seamless cust
   - [Channel Simulations](#channel-simulations)
   - [Routing](#routing)
   - [AI Engine](#ai-engine)
+  - [AI Agents](#ai-agents)
   - [Analytics](#analytics)
   - [Tags](#tags)
   - [WebSocket](#websocket)
@@ -49,7 +50,7 @@ Key capabilities:
 - **Agents** manage and reply to support tickets in real time through the dashboard UI or directly via the API.
 - **Tickets** track the full conversation history and lifecycle (`open` → `in_progress` → `closed`), with priority levels, SLA deadlines, tags, and categories.
 - **Routing** assigns tickets to the best available agent using skill-based matching and workload balancing.
-- **AI Engine** (keyword-based) suggests reply templates, classifies ticket categories, and recommends priority levels.
+- **AI Engine** powers smart reply suggestions, ticket classification, and priority recommendations — backed by LangChain + GPT-4 with a keyword-based fallback, and a LangGraph multi-step workflow for full ticket processing.
 - **Analytics** endpoints provide KPI dashboards, SLA compliance reports, and volume breakdowns.
 - **WebSocket** channels deliver instant message broadcasts to all connected clients watching a ticket.
 - **Simulation endpoints** let you test inbound flows (email, WhatsApp, social, voice, Shopify, web chat) end-to-end without external services.
@@ -68,6 +69,10 @@ Key capabilities:
 | Database driver | [asyncpg](https://magicstack.github.io/asyncpg/) ≥ 0.29 |
 | Database | PostgreSQL |
 | Validation | [Pydantic](https://docs.pydantic.dev/) ≥ 2.0 |
+| LLM SDK | [OpenAI Python](https://github.com/openai/openai-python) ≥ 1.3 |
+| AI orchestration | [LangChain](https://python.langchain.com/) ≥ 0.1 + [LangGraph](https://langchain-ai.github.io/langgraph/) ≥ 0.1 |
+| Vector database | [Pinecone](https://www.pinecone.io/) (optional; falls back to in-process FAISS) |
+| Vector search (local) | [FAISS](https://faiss.ai/) CPU ≥ 1.7 + [NumPy](https://numpy.org/) ≥ 1.24 |
 | Language | Python 3.11+ |
 
 ### Frontend Tech Stack
@@ -95,13 +100,15 @@ Omni-channel-repo/
 │   │   ├── connection.py        # Engine, session factory, Base, get_db
 │   │   └── init_db.py           # Table creation on startup
 │   ├── models/
-│   │   ├── user.py              # Agent (User) model (skills, availability, department)
+│   │   ├── user.py              # Agent (User) model (skills, availability, department, AI config)
 │   │   ├── customer.py          # Customer model
 │   │   ├── ticket.py            # Ticket model + TicketStatus/ChannelType/TicketPriority enums
 │   │   ├── message.py           # Message model + SenderType enum
-│   │   └── tag.py               # Tag model + ticket_tags association table
+│   │   ├── tag.py               # Tag model + ticket_tags association table
+│   │   └── agent_knowledge.py   # AgentKnowledgeBase + AgentResponse (AI audit trail) models
 │   ├── schemas/                 # Pydantic request/response schemas
 │   │   ├── user.py, customer.py, ticket.py, message.py, tag.py, email.py
+│   │   └── ai_agents.py         # AI agent creation, knowledge base, query, and response schemas
 │   ├── routes/
 │   │   ├── agents.py            # Agent CRUD, login, skills, availability
 │   │   ├── customers.py         # Customer endpoints
@@ -109,7 +116,8 @@ Omni-channel-repo/
 │   │   ├── messages.py          # Message send & history endpoints
 │   │   ├── channels.py          # Channel simulation (WhatsApp, Social, Voice, Shopify, WebChat)
 │   │   ├── routing.py           # Queue view & skill-based auto-assignment
-│   │   ├── ai.py                # Suggest replies, classify, prioritize
+│   │   ├── ai.py                # Keyword + LangChain + LangGraph AI endpoints
+│   │   ├── ai_agents.py         # AI agent management & RAG query endpoints
 │   │   ├── analytics.py         # KPIs, SLA report, volume report
 │   │   ├── tags.py              # Tag list
 │   │   ├── email_simulation.py  # POST /simulate/email
@@ -118,7 +126,13 @@ Omni-channel-repo/
 │   │   ├── customer_service.py, ticket_service.py, user_service.py
 │   │   ├── message_service.py, email_service.py
 │   │   ├── tag_service.py, routing_service.py
-│   │   ├── ai_service.py, analytics_service.py
+│   │   ├── ai_service.py        # Keyword-based classification & reply suggestions (fallback)
+│   │   ├── langchain_ai_service.py  # LangChain/GPT-4 smart classification & replies
+│   │   ├── langgraph_workflow.py    # LangGraph 4-step ticket processing workflow
+│   │   ├── ai_agent_service.py      # RAG-powered AI agent response generation
+│   │   ├── embedding_service.py     # OpenAI embeddings + Pinecone/local similarity search
+│   │   ├── rag_service.py           # FAISS-backed knowledge-base retrieval
+│   │   └── analytics_service.py
 │   └── utils/
 │       └── connection_manager.py  # WebSocket connection manager
 └── frontend/
@@ -138,6 +152,7 @@ Omni-channel-repo/
         │   ├── customers.ts     # Customer endpoints
         │   ├── analytics.ts     # Analytics endpoints
         │   ├── ai.ts            # AI suggestion / classify endpoints
+        │   ├── ai_agents.ts     # AI agent management & RAG query endpoints
         │   ├── routing.ts       # Routing queue & auto-assign endpoints
         │   ├── simulate.ts      # Channel simulation endpoints
         │   └── index.ts         # Re-exports all types and API functions
@@ -150,6 +165,7 @@ Omni-channel-repo/
             ├── Tickets.tsx
             ├── TicketDetail.tsx
             ├── Agents.tsx
+            ├── AIAgents.tsx
             ├── RoutingQueue.tsx
             └── Simulate.tsx
 ```
@@ -176,6 +192,15 @@ Omni-channel-repo/
 | `DB_MAX_OVERFLOW` | No | `10` | Extra connections allowed above pool size |
 | `DB_ECHO` | No | `false` | Set to `true` to log every SQL statement (dev only) |
 | `CORS_ORIGINS` | No | `*` | Allowed CORS origins. Use `*` for development or a comma-separated list of URLs for production |
+| `OPENAI_API_KEY` | **Yes*** | — | OpenAI API key. Required for embeddings, LangChain chains, LangGraph workflow, and AI agent RAG |
+| `OPENAI_MODEL` | No | `gpt-4` | OpenAI chat model used by LangChain and LangGraph (`gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`) |
+| `OPENAI_EMBEDDING_MODEL` | No | `text-embedding-3-small` | OpenAI model used to generate knowledge-base embeddings |
+| `ANTHROPIC_API_KEY` | No | — | Optional Anthropic Claude API key (alternative LLM provider) |
+| `PINECONE_API_KEY` | No | — | Pinecone API key. When set, embeddings are stored in Pinecone; otherwise in-process cosine search is used |
+| `PINECONE_ENVIRONMENT` | No | `us-west1-gcp` | Pinecone environment/region |
+| `PINECONE_INDEX` | No | `agent-knowledge` | Pinecone index name for knowledge-base vectors |
+
+> **\* AI features are optional.** The core ticketing, routing, WebSocket, and analytics functionality works without any OpenAI credentials. The smart AI endpoints fall back to keyword-based logic automatically when `OPENAI_API_KEY` is absent.
 
 Copy the provided template and fill in your values:
 
@@ -257,10 +282,27 @@ Database tables are created automatically on first startup.
 **Frontend** (from the `frontend/` directory):
 
 ```bash
+# Development server (with hot-module reload)
 npm run dev
 ```
 
 The frontend dev server starts at **http://localhost:5173** and proxies API calls to the backend.
+
+**Production build** (from the `frontend/` directory):
+
+```bash
+# Type-check and build static assets into frontend/dist/
+npm run build
+
+# Preview the production build locally
+npm run preview
+```
+
+**Linting** (from the `frontend/` directory):
+
+```bash
+npm run lint
+```
 
 > **Tip:** For the frontend to communicate with the backend, ensure the backend is running and that `CORS_ORIGINS` in `backend/.env` includes `http://localhost:5173`.
 
@@ -274,6 +316,9 @@ The frontend dev server starts at **http://localhost:5173** and proxies API call
 | `ModuleNotFoundError` on startup | Dependencies not installed | Run `pip install -r requirements.txt` inside the virtual environment |
 | `CORS` errors in browser | Frontend origin not allowed | Set `CORS_ORIGINS=http://localhost:5173` (or your frontend URL) in `backend/.env` |
 | `422 Unprocessable Entity` from the API | Request body does not match the expected schema | Check the `/docs` page for the correct payload shape |
+| `RuntimeError: OPENAI_API_KEY environment variable is not set` | AI endpoint called without the key configured | Add `OPENAI_API_KEY=sk-...` to `backend/.env` |
+| `503 Service Unavailable` from `/ai-agents/{id}/query` | OpenAI key missing or OpenAI is unreachable | Set `OPENAI_API_KEY`; AI reply/classify endpoints fall back to keyword logic automatically |
+| `RuntimeError: langgraph is not installed` | LangGraph package missing from the environment | Run `pip install -r requirements.txt` inside the virtual environment |
 
 ---
 
@@ -285,6 +330,7 @@ The frontend dev server starts at **http://localhost:5173** and proxies API call
 | `/tickets` | Tickets | Browse and filter all tickets with status and priority indicators |
 | `/tickets/:id` | Ticket Detail | View full message history, send replies, update status, manage tags |
 | `/agents` | Agents | List agents, register new agents, update skills and availability |
+| `/ai-agents` | AI Agents | Create and manage LLM-powered AI agents, manage their knowledge base, query them, and view response audit trails |
 | `/routing` | Routing Queue | View unassigned tickets ordered by priority; trigger auto-assignment |
 | `/simulate` | Simulate | Send test inbound messages from any supported channel (email, WhatsApp, etc.) |
 
@@ -435,6 +481,16 @@ The auto-assign algorithm:
 
 ### AI Engine
 
+The AI engine has three operational modes, tried in order:
+
+1. **LangChain + GPT-4** — full LLM-powered classification and contextual reply suggestions.
+2. **LangGraph workflow** — a 4-node state machine (classify → decide_response → route_agent → human_review).
+3. **Keyword-based fallback** — rule-based logic that always works without any API credentials.
+
+The `powered_by` field in smart-endpoint responses indicates which mode was used (`langchain`, `langgraph`, or `keyword_fallback`).
+
+#### Keyword / classic endpoints
+
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/ai/suggest-reply/{ticket_id}` | Return 3 canned reply suggestions based on ticket content |
@@ -451,6 +507,94 @@ The auto-assign algorithm:
   ]
 }
 ```
+
+#### Smart endpoints (LangChain / LangGraph — require `OPENAI_API_KEY`)
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/ai/suggest-reply-smart/{ticket_id}` | LangChain + GPT-4 contextually relevant reply suggestions with recommended tone |
+| `POST` | `/ai/classify-smart/{ticket_id}` | LLM-based classification: priority, category, department, and reasoning |
+| `POST` | `/ai/process-with-workflow/{ticket_id}` | Run the full LangGraph 4-step workflow for a ticket |
+
+**`/ai/classify-smart` response:**
+```json
+{
+  "ticket_id": 1,
+  "suggested_priority": "high",
+  "suggested_category": "billing",
+  "reasoning": "Customer mentions invoice and payment dispute.",
+  "suggested_department": "billing_team",
+  "powered_by": "langchain"
+}
+```
+
+**`/ai/process-with-workflow` response:**
+```json
+{
+  "ticket_id": 1,
+  "priority": "high",
+  "category": "billing",
+  "department": "billing_team",
+  "requires_human_review": true,
+  "auto_respond": false,
+  "suggested_response": "",
+  "routing_reason": "ESCALATED: Route to Billing Team – payment/invoice expertise needed",
+  "workflow_steps": ["classify", "decide_response", "route_agent", "human_review"],
+  "powered_by": "langgraph"
+}
+```
+
+---
+
+### AI Agents
+
+Manage LLM-powered support agents that are backed by a per-agent knowledge base (RAG). Requires `OPENAI_API_KEY`.
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/ai-agents/` | Create a new AI-powered agent |
+| `POST` | `/ai-agents/{agent_id}/knowledge` | Add a knowledge document to the agent's knowledge base |
+| `GET` | `/ai-agents/{agent_id}/knowledge` | List all knowledge documents for an agent |
+| `POST` | `/ai-agents/{agent_id}/query` | Query the agent; retrieves relevant context via RAG then calls the LLM |
+| `GET` | `/ai-agents/{agent_id}/responses` | View the audit trail of AI-generated responses for an agent |
+
+**Create AI agent body:**
+```json
+{
+  "name": "Support Bot",
+  "email": "bot@example.com",
+  "department": "support",
+  "skills": ["billing", "technical"],
+  "ai_model": "gpt-3.5-turbo",
+  "ai_config": {
+    "temperature": 0.7,
+    "max_tokens": 500,
+    "system_prompt": "You are a helpful support agent."
+  },
+  "knowledge_base_enabled": true,
+  "auto_respond": false,
+  "confidence_threshold": 0.7
+}
+```
+
+**Query body:**
+```json
+{ "query": "How do I get a refund?", "ticket_id": 42, "use_knowledge_base": true }
+```
+
+**Query response:**
+```json
+{
+  "response": "Refunds are processed within 3-5 business days. [Source 1: Billing FAQ]",
+  "confidence_score": 0.87,
+  "sources": [
+    { "id": 1, "title": "Billing FAQ", "category": "billing", "score": 0.87 }
+  ],
+  "requires_human_review": false
+}
+```
+
+When `confidence_score` falls below the agent's `confidence_threshold`, `requires_human_review` is set to `true` and the response is saved with `human_review_status: "pending"` in the audit trail.
 
 ---
 
