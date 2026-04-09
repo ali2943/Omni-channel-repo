@@ -76,6 +76,46 @@ export interface AISuggestion {
 }
 
 // ---------------------------------------------------------------------------
+// Smart AI types (LangChain / LangGraph-powered)
+// ---------------------------------------------------------------------------
+
+/** Response from GET /ai/suggest-reply-smart/{ticket_id} */
+export interface SmartAISuggestion {
+  ticket_id: number;
+  suggestions: string[];
+  /** Recommended tone: "formal" | "empathetic" | "technical" */
+  tone?: string;
+  /** "langchain" when LLM was used, "keyword_fallback" otherwise */
+  powered_by: string;
+}
+
+/** Response from POST /ai/classify-smart/{ticket_id} */
+export interface SmartClassification {
+  ticket_id: number;
+  suggested_priority: string;
+  suggested_category: string;
+  reasoning?: string;
+  suggested_department?: string;
+  /** "langchain" when LLM was used, "keyword_fallback" otherwise */
+  powered_by: string;
+}
+
+/** Response from POST /ai/process-with-workflow/{ticket_id} */
+export interface WorkflowResult {
+  ticket_id: number;
+  priority: string;
+  category: string;
+  department: string;
+  requires_human_review: boolean;
+  auto_respond: boolean;
+  suggested_response: string;
+  routing_reason: string;
+  workflow_steps: string[];
+  /** "langgraph" when workflow ran, "keyword_fallback" otherwise */
+  powered_by: string;
+}
+
+// ---------------------------------------------------------------------------
 // AI Agent types
 // ---------------------------------------------------------------------------
 
