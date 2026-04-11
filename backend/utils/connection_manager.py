@@ -19,13 +19,13 @@ if TYPE_CHECKING:
 def format_message_event(message: "Message") -> dict:
     """Serialise a Message ORM object into a WebSocket broadcast payload."""
     return {
-        "event": "new_message",
+        "type": "message",
         "message": {
             "id": message.id,
             "ticket_id": message.ticket_id,
             "sender_type": message.sender_type.value,
             "content": message.content,
-            "timestamp": message.timestamp.isoformat(),
+            "created_at": message.timestamp.isoformat(),
         },
     }
 
