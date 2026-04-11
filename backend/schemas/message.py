@@ -6,7 +6,7 @@ Pydantic schemas for the Message resource.
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from models.message import SenderType
 
@@ -25,6 +25,6 @@ class MessageOut(BaseModel):
     ticket_id: int
     sender_type: SenderType
     content: str
-    timestamp: datetime
+    created_at: datetime = Field(validation_alias="timestamp")
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
