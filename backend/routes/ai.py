@@ -65,7 +65,7 @@ async def classify_ticket(
     ticket = result.scalars().first()
     ticket.priority = classification["suggested_priority"]
     ticket.category = classification["suggested_category"]
-    await db.flush()
+    await db.commit()
     await db.refresh(ticket)
     return ticket
 
@@ -86,7 +86,7 @@ async def prioritize_ticket(
     result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
     ticket = result.scalars().first()
     ticket.priority = classification["suggested_priority"]
-    await db.flush()
+    await db.commit()
     await db.refresh(ticket)
     return ticket
 
