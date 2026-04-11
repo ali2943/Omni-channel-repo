@@ -32,4 +32,11 @@ class UserOut(BaseModel):
     is_available: bool
     department: Optional[str] = None
 
+    # AI agent configuration (defaults to non-AI values for human agents)
+    is_ai_agent: bool = False
+    ai_model: Optional[str] = None
+    knowledge_base_enabled: bool = False
+    auto_respond: bool = False
+    confidence_threshold: float = 0.7
+
     model_config = {"from_attributes": True}
