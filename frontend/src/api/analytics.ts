@@ -13,5 +13,9 @@ export const getSLA = async (): Promise<SLA> => {
 
 export const getVolume = async (): Promise<VolumeEntry[]> => {
   const { data } = await client.get('/analytics/volume');
+  if (!Array.isArray(data)) {
+    console.warn('getVolume: unexpected response format, expected array but got', typeof data);
+    return [];
+  }
   return data;
 };
