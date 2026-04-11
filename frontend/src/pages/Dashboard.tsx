@@ -67,11 +67,11 @@ export default function Dashboard() {
           <KPICard label="Closed" value={kpis.closed_tickets} />
           <KPICard
             label="SLA Compliance"
-            value={`${kpis.sla_compliance_percentage.toFixed(1)}%`}
+            value={kpis.sla_compliance_percentage != null ? `${kpis.sla_compliance_percentage.toFixed(1)}%` : '--'}
           />
           <KPICard
             label="Avg Handle Time"
-            value={`${kpis.average_handle_time_minutes.toFixed(0)} min`}
+            value={kpis.average_handle_time_minutes != null ? `${kpis.average_handle_time_minutes.toFixed(0)} min` : '--'}
           />
         </div>
       )}
