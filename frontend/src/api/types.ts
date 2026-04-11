@@ -56,8 +56,8 @@ export interface KPI {
   open_tickets: number;
   in_progress_tickets: number;
   closed_tickets: number;
-  sla_compliance_percentage?: number | null;
-  average_handle_time_minutes?: number | null;
+  sla_compliance_percentage?: number;
+  average_handle_time_minutes?: number;
 }
 
 export interface SLA {
