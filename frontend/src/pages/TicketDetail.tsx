@@ -96,7 +96,7 @@ export default function TicketDetail() {
     return () => {
       ws.close();
     };
-  }, [id]);
+  }, [ticketId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
