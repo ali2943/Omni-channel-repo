@@ -13,7 +13,7 @@ from schemas.customer import CustomerCreate
 
 async def create_customer(db: AsyncSession, payload: CustomerCreate) -> Customer:
     """Persist a new customer and return it."""
-    customer = Customer(name=payload.name, email=payload.email)
+    customer = Customer(name=payload.name, email=payload.email, phone=payload.phone)
     db.add(customer)
     await db.flush()
     await db.refresh(customer)

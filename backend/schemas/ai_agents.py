@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 # ---------------------------------------------------------------------------
@@ -72,11 +72,13 @@ class CreateAIAgent(BaseModel):
     department: str = "support"
     skills: List[str] = []
     ai_model: str = "gpt-3.5-turbo"
-    ai_config: Dict[str, Any] = {
-        "temperature": 0.7,
-        "max_tokens": 500,
-        "system_prompt": "You are a helpful support agent.",
-    }
+    ai_config: Dict[str, Any] = Field(
+        default_factory=lambda: {
+            "temperature": 0.7,
+            "max_tokens": 500,
+            "system_prompt": "You are a helpful support agent.",
+        }
+    )
     knowledge_base_enabled: bool = True
     auto_respond: bool = False
     confidence_threshold: float = 0.7

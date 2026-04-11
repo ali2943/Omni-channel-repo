@@ -5,11 +5,16 @@ Business logic for agent (User) operations.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user import User
 from schemas.user import UserCreate
+
+if TYPE_CHECKING:
+    from schemas.ai_agents import CreateAIAgent
 
 
 async def create_agent(db: AsyncSession, payload: UserCreate) -> User:
@@ -26,9 +31,8 @@ async def create_agent(db: AsyncSession, payload: UserCreate) -> User:
     return agent
 
 
-async def create_ai_agent(db: AsyncSession, payload: "CreateAIAgent") -> User:  # noqa: F821
+async def create_ai_agent(db: AsyncSession, payload: "CreateAIAgent") -> User:
     """Persist a new AI-powered agent and return it."""
-    from schemas.ai_agents import CreateAIAgent  # local import to avoid circular deps
 
     agent = User(
         name=payload.name,

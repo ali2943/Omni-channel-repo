@@ -4,6 +4,8 @@ schemas/customer.py
 Pydantic schemas for the Customer resource.
 """
 
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -12,6 +14,7 @@ class CustomerCreate(BaseModel):
 
     name: str
     email: EmailStr
+    phone: Optional[str] = None
 
 
 class CustomerOut(BaseModel):
@@ -20,5 +23,7 @@ class CustomerOut(BaseModel):
     id: int
     name: str
     email: str
+    phone: Optional[str] = None
+    created_at: str
 
     model_config = {"from_attributes": True}
