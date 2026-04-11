@@ -26,7 +26,7 @@ async def create_agent(db: AsyncSession, payload: UserCreate) -> User:
         department=payload.department,
     )
     db.add(agent)
-    await db.flush()
+    await db.commit()
     await db.refresh(agent)
     return agent
 
@@ -47,7 +47,7 @@ async def create_ai_agent(db: AsyncSession, payload: "CreateAIAgent") -> User:
         confidence_threshold=payload.confidence_threshold,
     )
     db.add(agent)
-    await db.flush()
+    await db.commit()
     await db.refresh(agent)
     return agent
 
@@ -78,7 +78,7 @@ async def update_agent_skills(
     if agent is None:
         return None
     agent.skills = skills
-    await db.flush()
+    await db.commit()
     await db.refresh(agent)
     return agent
 
@@ -91,6 +91,6 @@ async def update_agent_availability(
     if agent is None:
         return None
     agent.is_available = is_available
-    await db.flush()
+    await db.commit()
     await db.refresh(agent)
     return agent
