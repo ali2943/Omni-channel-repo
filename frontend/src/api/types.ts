@@ -58,6 +58,8 @@ export interface KPI {
   closed_tickets: number;
   sla_compliance_percentage?: number;
   average_handle_time_minutes?: number;
+  volume_by_channel: Record<string, number>;
+  volume_by_status: Record<string, number>;
 }
 
 export interface SLA {

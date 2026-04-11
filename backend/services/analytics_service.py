@@ -14,7 +14,12 @@ from models.ticket import Ticket, TicketStatus
 
 
 async def get_kpis(db: AsyncSession) -> dict:
-    """Return high-level KPI metrics for the support dashboard."""
+    """Return high-level KPI metrics for the support dashboard.
+
+    Returns a dict with keys: total_tickets, open_tickets, in_progress_tickets,
+    closed_tickets, sla_compliance_percentage, average_handle_time_minutes,
+    volume_by_channel (dict[str, int]), and volume_by_status (dict[str, int]).
+    """
     # All tickets
     all_result = await db.execute(select(Ticket))
     all_tickets = list(all_result.scalars().all())
