@@ -3,6 +3,10 @@ import type { KPI, SLA, VolumeEntry } from './types';
 
 export const getKPIs = async (): Promise<KPI> => {
   const { data } = await client.get('/analytics/kpis');
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    console.warn('getKPIs: unexpected response format, expected object but got', typeof data);
+    throw new Error('Invalid KPI response format');
+  }
   return data;
 };
 
