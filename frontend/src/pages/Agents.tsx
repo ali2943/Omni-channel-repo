@@ -25,8 +25,9 @@ export default function Agents() {
       const data = await listAgents();
       setAgents(data);
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load agents.';
       console.error('Failed to load agents:', err);
-      setError('Failed to load agents.');
+      setError(message);
     } finally {
       setLoading(false);
     }

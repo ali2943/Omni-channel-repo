@@ -78,7 +78,14 @@ async def login_agent(
 @router.get("/", response_model=list[UserOut])
 async def list_agents(db: AsyncSession = Depends(get_db)) -> list[UserOut]:
     """Return all agents."""
-    return await user_service.list_agents(db)
+    try:
+        return await user_service.list_agents(db)
+    except Exception as exc:
+        logger.exception("Failed to list agents: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not retrieve agents. Please try again or contact support.",
+        ) from exc
 
 
 @router.get("/{agent_id}", response_model=UserOut)
