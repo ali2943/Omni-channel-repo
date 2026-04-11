@@ -5,12 +5,16 @@ Skill-based ticket routing and queue management.
 """
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.ticket import Ticket, TicketStatus
 from models.user import User
 from services.ticket_service import assign_ticket, get_queue
+
+logger = logging.getLogger(__name__)
 
 
 async def get_routing_queue(db: AsyncSession) -> list[Ticket]:
@@ -37,12 +41,14 @@ async def auto_assign_ticket(
     result = await db.execute(select(Ticket).where(Ticket.id == ticket_id))
     ticket = result.scalars().first()
     if ticket is None:
+        logger.warning("auto_assign_ticket: ticket %d not found", ticket_id)
         return None
 
     # Gather all available agents
     result = await db.execute(select(User).where(User.is_available.is_(True)))
     available_agents = list(result.scalars().all())
     if not available_agents:
+        logger.warning("auto_assign_ticket: no available agents for ticket %d", ticket_id)
         return None
 
     # Determine the skill hint from channel or category
@@ -75,4 +81,11 @@ async def auto_assign_ticket(
     # Pick the agent with the fewest open tickets
     best_agent = min(candidate_pool, key=lambda a: open_counts.get(a.id, 0))
 
-    return await assign_ticket(db, ticket_id, best_agent.id)
+    assigned = await assign_ticket(db, ticket_id, best_agent.id)
+    if assigned is not None:
+        await db.commit()
+        await db.refresh(assigned)
+        logger.info(
+            "auto_assign_ticket: ticket %d assigned to agent %d", ticket_id, best_agent.id
+        )
+    return assigned

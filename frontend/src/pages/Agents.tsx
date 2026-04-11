@@ -65,8 +65,9 @@ export default function Agents() {
       setForm(defaultForm);
       await fetchAgents();
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create agent.';
       console.error('Failed to create agent:', err);
-      setFormError('Failed to create agent.');
+      setFormError(message);
     } finally {
       setSubmitting(false);
     }

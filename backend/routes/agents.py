@@ -12,6 +12,8 @@ PUT  /agents/{id}/availability       – update agent availability
 """
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,6 +23,7 @@ from schemas.user import UserCreate, UserLogin, UserOut
 from services import user_service
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
+logger = logging.getLogger(__name__)
 
 
 class SkillsUpdate(BaseModel):
@@ -37,14 +40,24 @@ async def create_agent(
     db: AsyncSession = Depends(get_db),
 ) -> UserOut:
     """Register a new support agent."""
-    existing = await user_service.get_agent_by_email(db, payload.email)
-    if existing:
+    try:
+        existing = await user_service.get_agent_by_email(db, payload.email)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An agent with this email already exists.",
+            )
+        agent = await user_service.create_agent(db, payload)
+        logger.info("Created agent id=%d email=%s", agent.id, agent.email)
+        return agent
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to create agent: %s", exc)
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="An agent with this email already exists.",
-        )
-    agent = await user_service.create_agent(db, payload)
-    return agent
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not create agent. Please try again or contact support.",
+        ) from exc
 
 
 @router.post("/login", response_model=UserOut)
